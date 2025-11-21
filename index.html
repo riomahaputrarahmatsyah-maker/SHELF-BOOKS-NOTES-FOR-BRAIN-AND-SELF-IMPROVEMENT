@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SHELF BOOKS NOTES</title>
+<style>
+  :root{
+    --primary: #9A3F3F;
+    --secondary: #C1856D;
+    --tertiary: #E6CFA9;
+    --light: #FBF9D1;
+    --bg: #fff;
+    --radius: 12px;
+    --gap: 12px;
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Basic layout */
+  html,body{height:100%;margin:0;background:var(--light);color:#222}
+  .app{max-width:480px;margin:0 auto;min-height:100vh;box-shadow:0 0 0 1px rgba(0,0,0,0.03);background:var(--light);display:flex;flex-direction:column}
+  header.banner{
+    position:sticky;top:0;z-index:20;padding:16px;background:linear-gradient(180deg, rgba(154,63,63,0.95), rgba(154,63,63,0.92));color:white;
+    border-bottom-left-radius:20px;border-bottom-right-radius:20px;
+    display:flex;flex-direction:column;gap:12px;
+  }
+  header .title{
+    text-align:center;font-weight:700;line-height:1.05;
+    font-size:18px; letter-spacing:0.5px;
+  }
+
+  /* top button row */
+  .btnrow{display:flex;gap:10px;justify-content:center;align-items:center}
+  .icon-btn{
+    display:inline-flex;align-items:center;justify-content:center;background:transparent;border:none;color:white;font-size:18px;padding:8px;border-radius:8px;
+  }
+  .btn-round{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.12);display:inline-flex;align-items:center;justify-content:center}
+  .btn-rect{
+    display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:14px;background:var(--secondary);color:white;border:none;font-weight:600;
+  }
+  .btn-filter{background:transparent;border:2px solid rgba(255,255,255,0.14);padding:8px 12px;border-radius:14px;color:white;display:inline-flex;gap:8px;align-items:center}
+
+  /* content area */
+  main{padding:14px;flex:1;overflow:auto}
+  .page{display:none}
+  .page.active{display:block}
+
+  /* Create form layout */
+  .create-card{display:flex;gap:12px;align-items:flex-start;background:white;padding:12px;border-radius:14px;box-shadow:0 2px 6px rgba(0,0,0,0.04)}
+  .cover-box{width:88px;height:120px;border-radius:8px;border:3px solid var(--secondary);background:linear-gradient(180deg,#fff,#f6f6f6);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+  .cover-box input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+  .cover-box .plus{font-size:36px;color:var(--secondary)}
+  .form-fields{flex:1;display:flex;flex-direction:column;gap:8px}
+  label.small{font-size:12px;color:var(--secondary);font-weight:700}
+  input[type=text], select, textarea{
+    border-radius:10px;border:1px solid rgba(0,0,0,0.06);padding:10px;background:var(--tertiary);outline:none;font-size:14px;width:100%;
+  }
+  textarea{min-height:120px;resize:vertical;background:var(--light);padding:12px}
+
+  .row{display:flex;gap:8px;align-items:center}
+  .genre-tags{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+  .tag{padding:6px 10px;border-radius:999px;background:var(--tertiary);border:1px solid rgba(0,0,0,0.03);font-weight:600;cursor:pointer}
+  .tag.selected{background:var(--primary);color:white;border-color:rgba(0,0,0,0.06)}
+  .small-badge{font-size:12px;padding:6px 8px;border-radius:8px;background:var(--tertiary)}
+
+  .upload-row{display:flex;justify-content:flex-end;margin-top:8px}
+  .upload-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 12px;border-radius:14px;background:var(--primary);color:white;border:none;font-weight:700}
+
+  /* feed list */
+  .card{display:flex;gap:12px;padding:12px;background:white;border-radius:12px;margin-bottom:12px;border-left:6px solid var(--secondary);align-items:flex-start}
+  .card .thumb{width:72px;height:96px;border-radius:8px;object-fit:cover;border:2px solid var(--secondary)}
+  .card .meta{flex:1;display:flex;flex-direction:column;gap:6px}
+  .meta .title{font-weight:700;color:var(--primary);font-size:15px}
+  .meta .book{font-weight:700;font-size:14px}
+  .meta .meta-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .meta .meta-small{font-size:12px;color:#444;background:var(--tertiary);padding:6px 8px;border-radius:8px}
+
+  /* filter page */
+  .filter-list{display:flex;flex-direction:column;gap:10px;margin:12px 0}
+  .filter-item{display:flex;gap:8px;align-items:center;padding:10px;background:white;border-radius:10px}
+
+  /* detail modal-ish */
+  .detail{padding:12px;background:white;border-radius:12px}
+  .detail .content{white-space:pre-wrap;margin-top:8px;background:var(--light);padding:10px;border-radius:8px}
+
+  /* responsive touches */
+  @media(min-width:520px){
+    .app{margin-top:20px}
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <!-- Banner (static) -->
+  <header class="banner" role="banner">
+    <div class="title">
+      SHELF BOOKS NOTES<br>
+      FOR BRAIN<br>
+      AND SELF IMPROVEMENT
+    </div>
+    <div class="btnrow" aria-hidden="false">
+      <!-- Back -->
+      <button class="icon-btn" id="backBtn" title="Kembali" style="color:white">
+        <span class="btn-round" aria-hidden="true">
+          <!-- left arrow -->
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+      </button>
+
+      <!-- Create Review -->
+      <button class="btn-rect" id="toCreate">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="display:inline-block;vertical-align:middle"><path d="M12 5v14M5 12h14" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>buat ulasan</span>
+      </button>
+
+      <!-- Home -->
+      <button class="icon-btn" id="toHome" title="Beranda">
+        <span class="btn-round" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 10.5L12 4l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1V10.5z" stroke="white" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+      </button>
+
+      <!-- Filter -->
+      <button class="btn-filter" id="toFilter" title="Filter">
+        <span>Filter</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M6 12h12M10 18h4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Content -->
+  <main>
+    <!-- Beranda -->
+    <section id="home" class="page active" aria-live="polite">
+      <div id="feedList">
+        <!-- cards will be injected here -->
+      </div>
+      <div style="height:60px"></div>
+    </section>
+
+    <!-- Buat Ulasanmu! -->
+    <section id="create" class="page" aria-hidden="true">
+      <div class="create-card" role="form" aria-label="Form Buat Ulasan">
+        <div class="cover-box" id="coverBox">
+          <span class="plus">+</span>
+          <input type="file" id="coverInput" accept="image/*">
+        </div>
+        <div class="form-fields">
+          <div>
+            <div class="small-badge">Judul Ulasan</div>
+            <input type="text" id="reviewTitle" placeholder="Contoh: Hal yang belum kusadari">
+          </div>
+          <div style="display:flex;gap:8px">
+            <div style="flex:1">
+              <div class="small-badge">Judul Buku</div>
+              <input type="text" id="bookTitle" placeholder="Judul buku">
+            </div>
+            <div style="flex:1">
+              <div class="small-badge">Nama Penulis</div>
+              <input type="text" id="authorName" placeholder="Nama penulis">
+            </div>
+          </div>
+          <div>
+            <div class="small-badge">Genre</div>
+            <div class="genre-tags" id="genreTags">
+              <div class="tag" data-genre="Romance">@Romance</div>
+              <div class="tag" data-genre="Drama">@Drama</div>
+              <div class="tag" data-genre="Fantasi">@Fantasi</div>
+            </div>
+            <input type="hidden" id="genreValue">
+          </div>
+          <div>
+            <div class="small-badge">Nama Pengulas</div>
+            <input type="text" id="reviewerName" placeholder="Nama Anda">
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px">
+        <div class="small-badge">Isi Ulasan</div>
+        <textarea id="reviewContent" placeholder="Tulis ulasanmu di sini..." ></textarea>
+      </div>
+
+      <div class="upload-row">
+        <button id="uploadBtn" class="upload-btn" title="Upload Ulasan">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3v12M5 10l7-7 7 7M21 21H3" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Upload
+        </button>
+      </div>
+    </section>
+
+    <!-- Filter -->
+    <section id="filter" class="page" aria-hidden="true">
+      <div style="margin-top:6px">
+        <div class="small-badge">Pilih Genre</div>
+        <div class="filter-list">
+          <label class="filter-item"><input type="checkbox" value="Romance" class="filter-checkbox"> <span>@Romance</span></label>
+          <label class="filter-item"><input type="checkbox" value="Fantasi" class="filter-checkbox"> <span>@Fantasi</span></label>
+          <label class="filter-item"><input type="checkbox" value="Drama" class="filter-checkbox"> <span>@Drama</span></label>
+        </div>
+        <div style="display:flex;justify-content:flex-end">
+          <button id="applyFilter" class="upload-btn" style="background:var(--primary)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M21 21l-6-6M10 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16z" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Cari
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Detail (reused area for reading one review) -->
+    <section id="detail" class="page" aria-hidden="true"></section>
+  </main>
+</div>
+
+<script>
+/* ====== Simple SPA and data handling ====== */
+const pages = {
+  home: document.getElementById('home'),
+  create: document.getElementById('create'),
+  filter: document.getElementById('filter'),
+  detail: document.getElementById('detail')
+};
+
+function showPage(name){
+  Object.values(pages).forEach(p => p.classList.remove('active'));
+  pages[name].classList.add('active');
+  // accessibility attributes
+  Object.keys(pages).forEach(k => pages[k].setAttribute('aria-hidden', k !== name));
+  // scroll top for new page
+  pages[name].scrollTop = 0;
+}
+
+/* navigation buttons */
+document.getElementById('toHome').addEventListener('click', ()=> showPage('home'));
+document.getElementById('toCreate').addEventListener('click', ()=> showPage('create'));
+document.getElementById('toFilter').addEventListener('click', ()=> showPage('filter'));
+document.getElementById('backBtn').addEventListener('click', ()=> {
+  // fallback: go to home if no history
+  if(history.length>1) history.back();
+  else showPage('home');
+});
+
+/* Genre tag selection */
+const genreTags = document.getElementById('genreTags');
+const genreInput = document.getElementById('genreValue');
+genreTags.addEventListener('click', (e) => {
+  const t = e.target.closest('.tag');
+  if(!t) return;
+  // toggle single-select
+  [...genreTags.querySelectorAll('.tag')].forEach(x => x.classList.remove('selected'));
+  t.classList.add('selected');
+  genreInput.value = t.dataset.genre;
+});
+
+/* Cover upload preview */
+const coverInput = document.getElementById('coverInput');
+const coverBox = document.getElementById('coverBox');
+let coverDataUrl = ''; // holds current chosen cover
+coverInput.addEventListener('change', (e)=>{
+  const f = e.target.files[0];
+  if(!f) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    coverDataUrl = reader.result;
+    // render image inside coverBox
+    coverBox.innerHTML = '';
+    const img = document.createElement('img');
+    img.src = coverDataUrl;
+    img.alt = 'cover';
+    img.style.width='100%'; img.style.height='100%'; img.style.objectFit='cover';
+    img.className='thumb';
+    coverBox.appendChild(img);
+    // keep file input accessible
+    const inp = document.createElement('input');
+    inp.type='file'; inp.accept='image/*'; inp.style.position='absolute'; inp.style.inset=0; inp.style.opacity=0; inp.style.cursor='pointer';
+    inp.addEventListener('change', (ev)=> coverInput.dispatchEvent(new Event('change')));
+    coverBox.appendChild(inp);
+  };
+  reader.readAsDataURL(f);
+});
+
+/* Storage helper */
+const STORAGE_KEY = 'bookReviews_v1';
+function loadReviews(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return [];
+    return JSON.parse(raw);
+  }catch(e){ return []; }
+}
+function saveReviews(arr){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+}
+
+/* Render feed */
+function renderFeed(list){
+  const container = document.getElementById('feedList');
+  container.innerHTML = '';
+  if(!list.length){
+    container.innerHTML = '<div style="padding:20px;text-align:center;color:#666">Belum ada ulasan. Buat ulasan pertamamu!</div>';
+    return;
+  }
+  list.forEach((item, idx) => {
+    const card = document.createElement('article'); card.className='card';
+    const img = document.createElement('img'); img.className='thumb';
+    img.src = item.cover || placeholderDataURL();
+    img.alt = item.bookTitle || 'cover';
+    const meta = document.createElement('div'); meta.className='meta';
+    const t = document.createElement('div'); t.className='title'; t.textContent = item.reviewTitle || '(tanpa judul)';
+    const b = document.createElement('div'); b.className='book'; b.textContent = item.bookTitle + ' — ' + (item.authorName || '');
+    const row = document.createElement('div'); row.className='meta-row';
+    const g = document.createElement('div'); g.className='meta-small'; g.textContent = '@' + (item.genre || '-');
+    const u = document.createElement('div'); u.className='meta-small'; u.textContent = item.reviewerName || 'Anon';
+    row.appendChild(g); row.appendChild(u);
+    meta.appendChild(t); meta.appendChild(b); meta.appendChild(row);
+
+    // clicking card opens detail
+    card.addEventListener('click', ()=> openDetail(idx));
+    card.appendChild(img); card.appendChild(meta);
+    container.appendChild(card);
+  });
+}
+
+/* placeholder image */
+function placeholderDataURL(){
+  // a simple pale cover
+  return 'data:image/svg+xml;utf8,' + encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600"><rect width="100%" height="100%" fill="${'#F7EFE4'}"/><rect x="12" y="12" width="calc(100% - 24)" height="calc(100% - 24)" fill="${'#EDE2D0'}" stroke="${'#C1856D'}" stroke-width="8" rx="8"/></svg>`
+  );
+}
+
+/* Upload handler */
+document.getElementById('uploadBtn').addEventListener('click', ()=> {
+  const reviewTitle = document.getElementById('reviewTitle').value.trim();
+  const bookTitle = document.getElementById('bookTitle').value.trim();
+  const authorName = document.getElementById('authorName').value.trim();
+  const genre = document.getElementById('genreValue').value || '';
+  const reviewerName = document.getElementById('reviewerName').value.trim();
+  const content = document.getElementById('reviewContent').value.trim();
+
+  if(!bookTitle || !reviewTitle || !reviewerName){
+    alert('Silakan isi minimal: Judul Ulasan, Judul Buku, dan Nama Pengulas.');
+    return;
+  }
+
+  const reviews = loadReviews();
+  reviews.unshift({
+    id: Date.now(),
+    reviewTitle, bookTitle, authorName, genre, reviewerName, content,
+    cover: coverDataUrl || ''
+  });
+  saveReviews(reviews);
+  // reset form
+  resetForm();
+  renderFeed(reviews);
+  showPage('home');
+});
+
+/* reset form */
+function resetForm(){
+  document.getElementById('reviewTitle').value='';
+  document.getElementById('bookTitle').value='';
+  document.getElementById('authorName').value='';
+  document.getElementById('reviewerName').value='';
+  document.getElementById('reviewContent').value='';
+  document.getElementById('genreValue').value='';
+  coverDataUrl='';
+  // reset cover box
+  coverBox.innerHTML = '<span class="plus">+</span><input type="file" id="coverInput" accept="image/*">';
+  // rebind the new input reference
+  const newInp = coverBox.querySelector('input[type=file]');
+  newInp.addEventListener('change', (e)=> {
+    coverInput.files = e.target.files; // mirror
+    coverInput.dispatchEvent(new Event('change'));
+  });
+  // unselect tags
+  [...genreTags.querySelectorAll('.tag')].forEach(x => x.classList.remove('selected'));
+}
+
+/* filter apply */
+document.getElementById('applyFilter').addEventListener('click', ()=> {
+  const checked = [...document.querySelectorAll('.filter-checkbox:checked')].map(i=>i.value);
+  const all = loadReviews();
+  if(checked.length === 0){
+    renderFeed(all);
+  } else {
+    const filtered = all.filter(r => checked.includes(r.genre));
+    renderFeed(filtered);
+  }
+  showPage('home');
+});
+
+/* open detail */
+function openDetail(index){
+  const reviews = loadReviews();
+  const item = reviews[index];
+  if(!item) return;
+  const container = pages.detail;
+  container.innerHTML = '';
+  const wrapper = document.createElement('div'); wrapper.className='detail';
+  const header = document.createElement('div'); header.style.display='flex'; header.style.gap='10px'; header.style.alignItems='center';
+  const img = document.createElement('img'); img.src = item.cover || placeholderDataURL(); img.style.width='96px'; img.style.height='132px'; img.style.borderRadius='8px'; img.style.objectFit='cover'; img.style.border='2px solid var(--secondary)';
+  const meta = document.createElement('div'); meta.style.flex=1;
+  meta.innerHTML = `<div style="font-weight:800;color:var(--primary);font-size:16px">${escapeHtml(item.reviewTitle)}</div>
+                    <div style="font-weight:700;margin-top:6px">${escapeHtml(item.bookTitle)} — ${escapeHtml(item.authorName || '')}</div>
+                    <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap">
+                      <div class="small-badge">@${escapeHtml(item.genre || '-')}</div>
+                      <div class="small-badge">${escapeHtml(item.reviewerName || '')}</div>
+                    </div>`;
+  header.appendChild(img); header.appendChild(meta);
+  const content = document.createElement('div'); content.className='content'; content.innerHTML = escapeHtml(item.content || '(tidak ada isi ulasan)');
+  wrapper.appendChild(header); wrapper.appendChild(content);
+
+  // back to home button
+  const back = document.createElement('div'); back.style.marginTop='10px'; back.style.display='flex'; back.style.justifyContent='flex-end';
+  const bbtn = document.createElement('button'); bbtn.className='upload-btn'; bbtn.textContent='Tutup';
+  bbtn.addEventListener('click', ()=> showPage('home'));
+  back.appendChild(bbtn);
+  wrapper.appendChild(back);
+
+  container.appendChild(wrapper);
+  showPage('detail');
+}
+
+/* util */
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, function(m){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"\'":'&#39;'}[m]; });
+}
+
+/* initialize */
+document.addEventListener('DOMContentLoaded', ()=> {
+  // load initial feed
+  renderFeed(loadReviews());
+  // ensure cover input binding (for first load)
+  const inp = document.querySelector('#coverBox input[type=file]');
+  if(inp){
+    inp.addEventListener('change', (e)=> {
+      coverInput.files = e.target.files;
+      coverInput.dispatchEvent(new Event('change'));
+    });
+  }
+});
+</script>
+</body>
+</html>
